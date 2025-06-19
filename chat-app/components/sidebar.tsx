@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 import { FaRegEdit } from "react-icons/fa"
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarTrigger } from "./ui/sidebar";
