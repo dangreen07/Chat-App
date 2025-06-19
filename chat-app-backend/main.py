@@ -3,15 +3,29 @@ from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+from typing import Literal
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
 
+origins = [
+    os.getenv("FRONTEND_URL")
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class Message(BaseModel):
-    role: str
+    role: Literal["user", "assistant"]
     content: str
 
 class ChatRequest(BaseModel):
@@ -24,7 +38,7 @@ async def chat(request: ChatRequest):
         input=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant."
+                "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format."
             },
             *request.messages
         ]

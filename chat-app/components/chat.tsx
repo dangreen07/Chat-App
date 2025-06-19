@@ -1,17 +1,27 @@
 "use client"
 
 import { useState } from "react";
+import Markdown from "react-markdown";
 
 export default function Chat() {
     const [messages, setMessages] = useState<{ role: "user" | "assistant", content: string }[]>([]);
     const [message, setMessage] = useState("");
     const [generating, setGenerating] = useState(false);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         setMessage("");
         setGenerating(true);
-        setMessages([...messages, { role: "user", content: message }]);
-        console.log(messages);
+        const newMessages = [...messages, { role: "user" as const, content: message }];
+        setMessages(newMessages);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
+            method: "POST",
+            body: JSON.stringify({ messages: newMessages }),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+        const data = await response.json();
+        setMessages([...newMessages, { role: "assistant" as const, content: data.message }]);
         setTimeout(() => {
             setGenerating(false);
         }, 1000);
@@ -22,7 +32,7 @@ export default function Chat() {
             <div id="chat-container" className="flex flex-col h-full gap-2 overflow-y-auto">
                 {messages.map((message, index) => (
                     <div key={index} className={`${message.role === "user" ? "text-black self-end" : "text-black self-start"} p-2 rounded-md bg-gray-200 max-w-2/3`}>
-                        {message.content}
+                        <Markdown>{message.content}</Markdown>
                     </div>
                 ))}
             </div>
