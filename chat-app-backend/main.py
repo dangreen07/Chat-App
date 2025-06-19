@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -33,18 +34,20 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    response = client.responses.create(
-        model="gpt-4.1-nano",
-        input=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format."
-            },
-            *request.messages
-        ]
-    )
+    def event_stream():
+        for chunk in client.chat.completions.create(
+            model="gpt-4.1-nano",
+            messages=[
+                {"role": "system",
+                 "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format."},
+                *request.messages,
+            ],
+            stream=True,
+        ):
+            content = chunk.choices[0].delta.content or ""
+            yield content.encode("utf-8")
 
-    return {"message": response.output_text}
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @app.get("/health")
 async def health():

@@ -9,22 +9,51 @@ export default function Chat() {
     const [generating, setGenerating] = useState(false);
 
     const handleSend = async () => {
-        setMessage("");
-        setGenerating(true);
+        // Prevent empty submissions
+        if (!message.trim()) return;
+
+        // Add the user's message to the local state first
         const newMessages = [...messages, { role: "user" as const, content: message }];
         setMessages(newMessages);
+        setMessage("");
+        setGenerating(true);
+
+        // Make the request to the backend
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ messages: newMessages }),
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
-        const data = await response.json();
-        setMessages([...newMessages, { role: "assistant" as const, content: data.message }]);
-        setTimeout(() => {
+        });
+
+        // Guard against a missing body (shouldn't normally happen)
+        if (!response.body) {
             setGenerating(false);
-        }, 1000);
+            return;
+        }
+
+        // Prepare to stream the response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        // Seed the assistant's placeholder message
+        const streamedMessages = [...newMessages, { role: "assistant" as const, content: "" }];
+        setMessages(streamedMessages);
+
+        try {
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                // Decode and append the new chunk
+                const chunk = decoder.decode(value, { stream: true });
+                streamedMessages[streamedMessages.length - 1].content += chunk;
+                // Trigger a React update with a new array reference
+                setMessages([...streamedMessages]);
+            }
+        } finally {
+            // Ensure we reset the generating flag even if an error occurs
+            setGenerating(false);
+            reader.releaseLock();
+        }
     }
 
     return (
