@@ -3,21 +3,18 @@ import { FaRegEdit } from "react-icons/fa"
 import { Sidebar, SidebarContent, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarTrigger } from "./ui/sidebar";
 import { Button } from "./ui/button";
 
-export default function AppSidebar() {
-    const sampleChats = [
-        {
-            id: "hsadjsamsadjs",
-            title: "Recipes for dinner"
-        },
-        {
-            id: "asdjasdjasd",
-            title: "Best restaurants in United Kingdom"
-        },
-        {
-            id: "asdsashadsd",
-            title: "Stripy purple cat"
-        }
-    ]
+type Chat = {
+    id: string
+    chat_name: string
+    created_at: string
+    updated_at: string
+}
+
+export default async function AppSidebar() {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chats`)
+    const data = await res.json() as { chats: Chat[] }
+
+    const chats = data.chats
 
     return (
         <Sidebar id="sidebar" collapsible="icon" variant="sidebar">
@@ -34,10 +31,10 @@ export default function AppSidebar() {
                 </Link>
                 <SidebarGroupLabel className="text-lg font-bold group-data-[collapsible=icon]:hidden">Chats</SidebarGroupLabel>
                 <SidebarGroupContent className="flex flex-col gap-2 overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:hidden">
-                    {sampleChats.map((chat) => (
+                    {chats.map((chat) => (
                         <Link href={`/chat/${chat.id}`} key={chat.id}>
                             <Button variant="ghost" className="w-full justify-start">
-                                <span>{chat.title}</span>
+                                <span>{chat.chat_name}</span>
                             </Button>
                         </Link>
                     ))}

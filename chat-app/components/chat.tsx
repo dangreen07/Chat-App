@@ -102,10 +102,21 @@ export default function Chat({ chatId, initialMessages, onLoadGenerate = false }
 
     return (
         <div className="flex-1 p-4 flex flex-col max-w-3xl mx-auto">
-            <div id="chat-container" className="flex flex-col h-full gap-2 overflow-y-auto">
+            <div id="chat-container" className="flex flex-col h-full gap-2 overflow-y-auto pb-4">
                 {messages.map((message, index) => (
                     <div key={index} className={`${message.role === "user" ? "text-black self-end" : "text-black self-start"} p-2 rounded-md bg-gray-200 max-w-2/3`}>
-                        <Markdown>{message.content}</Markdown>
+                        <Markdown
+                            components={{
+                                ul: (props) => (
+                                    <ul className="list-disc list-inside ml-4" {...props} />
+                                ),
+                                ol: (props) => (
+                                    <ol className="list-decimal list-inside ml-4" {...props} />
+                                ),
+                            }}
+                        >
+                            {message.content}
+                        </Markdown>
                     </div>
                 ))}
             </div>

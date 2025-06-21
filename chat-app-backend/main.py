@@ -12,7 +12,7 @@ from schema import Chat
 from schema import Message as DBMessage
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL)
 
 load_dotenv()
 
@@ -73,13 +73,13 @@ async def new_chat():
         chat = Chat()
         session.add(chat)
         session.commit()
-        return {"chat_id": chat.id}
+        return { "chat_id": chat.id }
 
 @app.get("/chat/{chat_id}/messages")
 async def get_chat(chat_id: str):
     with Session(engine) as session:
         messages = session.query(DBMessage).filter(DBMessage.chat_id == chat_id).all()
-        return {"messages": messages}
+        return { "messages": messages }
 
 @app.post("/chat/{chat_id}/auto-name")
 async def auto_name(chat_id: str):
@@ -87,19 +87,32 @@ async def auto_name(chat_id: str):
         messages = session.query(DBMessage).filter(DBMessage.chat_id == chat_id).all()
         if len(messages) == 0:
             return {"error": "No messages in chat"}
-        messages = [message.content for message in messages]
+        messages = [{"role": message.role, "content": message.content} for message in messages]
         response = client.responses.create(
             model="gpt-4.1-nano",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format. You will output a single word that is a good name for a chat."},
+            input=[
                 *messages,
-                {"role": "user", "content": "Give me an insightful name for this chat. Not too detailed, or long. 3-5 words."}
+                {"role": "system", "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format. You will output a short description of the chat that is a good name for a chat."},
+                {"role": "user", "content": "Give me an insightful description for this chat. Not too detailed, or long. 3-5 words."}
             ],
+            store=True
         )
-        session.query(Chat).filter(Chat.id == chat_id).update({"name": response.output_text})
+        session.query(Chat).filter(Chat.id == chat_id).update({"chat_name": response.output_text})
         session.commit()
-        return {"name": response.output_text}
+        return { "name": response.output_text }
+
+@app.get("/chats")
+async def get_chats():
+    with Session(engine) as session:
+        chats = session.query(Chat).all()
+        return { "chats": chats }
+
+@app.get("/chat/{chat_id}")
+async def get_chat(chat_id: str):
+    with Session(engine) as session:
+        chat = session.query(Chat).filter(Chat.id == chat_id).first()
+        return { "chat": chat }
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return { "status": "healthy" }
