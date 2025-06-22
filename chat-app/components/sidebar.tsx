@@ -32,7 +32,7 @@ export default async function AppSidebar() {
                 <SidebarGroupLabel className="text-lg font-bold group-data-[collapsible=icon]:hidden">Chats</SidebarGroupLabel>
                 <SidebarGroupContent className="flex flex-col gap-2 overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:hidden">
                     {chats.map((chat) => (
-                        <Link href={`/chat/${chat.id}`} key={chat.id}>
+                        <Link href={`/chat/${chat.id}`} key={chat.id} prefetch={true}>
                             <Button variant="ghost" className="w-full justify-start">
                                 <span>{chat.chat_name}</span>
                             </Button>
