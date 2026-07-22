@@ -21,9 +21,8 @@ No test suite exists. No typecheck script separate from lint/build.
 
 ## Backend commands (`chat-app-backend/`)
 
-No dependency manifest (no requirements.txt or pyproject.toml). Backend dependencies: fastapi, sqlalchemy, openai, python-dotenv, uvicorn.
-
 ```bash
+pip install -r requirements.txt  # Install Python dependencies
 python main.py   # or: uvicorn main:app --reload
 python migrate.py  # DANGER: drops ALL tables then recreates (drop_all → create_all)
 ```
@@ -32,7 +31,7 @@ python migrate.py  # DANGER: drops ALL tables then recreates (drop_all → creat
 
 ### Backend
 - `DATABASE_URL` — PostgreSQL connection string (used by engine and migrate.py)
-- `OPENAI_API_KEY` — for GPT-4.1-nano completions
+- `OPENAI_API_KEY` — for GPT-5.4-nano completions
 - `FRONTEND_URL` — allowed CORS origin
 
 ### Frontend

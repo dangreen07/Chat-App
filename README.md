@@ -49,7 +49,8 @@ chat-app/
 chat-app-backend/
 ├── main.py             # FastAPI routes and OpenAI integration
 ├── schema.py           # SQLAlchemy models (Chat, Message)
-└── migrate.py          # Database migration (destructive!)
+├── migrate.py          # Database migration (destructive!)
+└── requirements.txt    # Python dependencies
 ```
 
 ## Getting Started
@@ -81,7 +82,7 @@ python -m venv .venv
 # macOS/Linux
 source .venv/bin/activate
 
-pip install fastapi sqlalchemy openai python-dotenv uvicorn
+pip install -r requirements.txt
 ```
 
 ### Environment Variables
