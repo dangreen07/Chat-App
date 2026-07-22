@@ -33,6 +33,7 @@ python migrate.py  # DANGER: drops ALL tables then recreates (drop_all → creat
 - `DATABASE_URL` — PostgreSQL connection string (used by engine and migrate.py)
 - `OPENAI_API_KEY` — for GPT-5.4-nano completions
 - `FRONTEND_URL` — allowed CORS origin
+- `JWT_SECRET_KEY` — secret key for JWT token signing (change in production)
 
 ### Frontend
 - `NEXT_PUBLIC_API_URL` — backend base URL (used in fetch calls from both server and client components)
@@ -41,7 +42,7 @@ No `.env` files are committed. Both packages expect you to create them locally.
 
 ## Key architecture notes
 
-- **Auth:** Clerk (`@clerk/nextjs`). Root layout wraps everything in `<ClerkProvider>`. Middleware at `chat-app/middleware.ts` — currently all routes are marked public (the matcher includes `/(.*)`), so auth protection is effectively disabled.
+- **Auth:** Custom JWT-based authentication. Users register/login via `/auth/register` and `/auth/login`. Sessions are stored in the database with 7-day expiration. Tokens are sent as httpOnly cookies.
 - **Route groups:** `(auth)` for sign-in/sign-up pages, `(chat)` for the main chat UI with sidebar.
 - **Chat streaming:** Frontend reads SSE from `POST /chat`. Backend streams OpenAI completions, then saves both user and assistant messages to DB after the stream ends.
 - **Auto-naming:** After the first assistant reply, frontend calls `POST /chat/{chatId}/auto-name` which uses OpenAI to generate a 3-5 word chat title.
@@ -54,3 +55,4 @@ No `.env` files are committed. Both packages expect you to create them locally.
 - Backend saves messages inside a generator function (after streaming completes). If the stream is interrupted, messages won't be persisted.
 - Backend has duplicate route names: two `get_chat` endpoints at different paths (`/chat/{chat_id}` and `/chat/{chat_id}/messages`). FastAPI resolves by registration order.
 - Frontend `sidebar.tsx` is an async server component that fetches chats at render time — no revalidation or caching strategy is configured.
+- All chat routes require authentication. The `get_current_user` dependency validates the JWT token against the database session.

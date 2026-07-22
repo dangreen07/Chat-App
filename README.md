@@ -8,7 +8,7 @@ A full-stack AI chat application with a Next.js frontend and FastAPI backend, po
 - Persistent chat history with PostgreSQL
 - Automatic chat naming using AI
 - Responsive sidebar with chat list
-- Clerk authentication integration
+- Database-backed authentication with JWT sessions
 - Markdown rendering for AI responses
 
 ## Tech Stack
@@ -16,7 +16,7 @@ A full-stack AI chat application with a Next.js frontend and FastAPI backend, po
 ### Frontend (`chat-app/`)
 - **Framework:** Next.js 15.3 (React 19, TypeScript)
 - **Styling:** Tailwind CSS v4, shadcn/ui (new-york style)
-- **Auth:** Clerk (`@clerk/nextjs`)
+- **Auth:** Custom JWT-based authentication
 - **Icons:** Lucide React, React Icons
 - **Markdown:** react-markdown
 
@@ -25,30 +25,33 @@ A full-stack AI chat application with a Next.js frontend and FastAPI backend, po
 - **Database:** PostgreSQL with SQLAlchemy ORM
 - **AI:** OpenAI API (GPT-5.4-nano)
 - **Server:** Uvicorn
+- **Auth:** JWT tokens with bcrypt password hashing
 
 ## Project Structure
 
 ```
 chat-app/
 ├── app/
-│   ├── (auth)/          # Sign-in/sign-up pages (Clerk)
+│   ├── (auth)/          # Sign-in/sign-up pages
 │   ├── (chat)/          # Main chat UI with sidebar
 │   │   ├── chat/[chatId]/  # Individual chat pages
 │   │   └── page.tsx    # Home/new chat page
-│   ├── layout.tsx      # Root layout with ClerkProvider
+│   ├── layout.tsx      # Root layout with AuthProvider
 │   └── globals.css     # Tailwind + shadcn theme
 ├── components/
 │   ├── ui/             # shadcn/ui components
 │   ├── chat.tsx        # Main chat component (client-side)
 │   └── sidebar.tsx     # Sidebar with chat list (server component)
 ├── lib/
-│   └── utils.ts        # cn() utility for Tailwind
+│   ├── utils.ts        # cn() utility for Tailwind
+│   └── auth-context.tsx # Auth context/provider
 └── hooks/
     └── use-mobile.ts   # Mobile detection hook
 
 chat-app-backend/
 ├── main.py             # FastAPI routes and OpenAI integration
-├── schema.py           # SQLAlchemy models (Chat, Message)
+├── auth.py             # Authentication routes and utilities
+├── schema.py           # SQLAlchemy models (User, Session, Chat, Message)
 ├── migrate.py          # Database migration (destructive!)
 └── requirements.txt    # Python dependencies
 ```
@@ -61,7 +64,6 @@ chat-app-backend/
 - Python 3.10+
 - PostgreSQL database
 - OpenAI API key
-- Clerk account (for authentication)
 
 ### Installation
 
@@ -93,8 +95,6 @@ Create `.env` files in both directories:
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
 ```
 
 #### `chat-app-backend/.env`
@@ -103,6 +103,7 @@ CLERK_SECRET_KEY=your_clerk_secret_key
 DATABASE_URL=postgresql://user:password@localhost:5432/chatdb
 OPENAI_API_KEY=your_openai_api_key
 FRONTEND_URL=http://localhost:3000
+JWT_SECRET_KEY=your-secret-key-change-in-production
 ```
 
 ### Database Setup
@@ -132,6 +133,15 @@ The frontend runs at `http://localhost:3000` and the backend at `http://localhos
 
 ## API Endpoints
 
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | Create new user account |
+| POST | `/auth/login` | Sign in with email/password |
+| POST | `/auth/logout` | Sign out and clear session |
+| GET | `/auth/me` | Get current user info |
+
+### Chat
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/chat` | Send messages and receive streaming AI response |
@@ -144,8 +154,23 @@ The frontend runs at `http://localhost:3000` and the backend at `http://localhos
 
 ## Database Schema
 
+### Users Table
+- `id` (UUID, primary key)
+- `email` (String, unique, indexed)
+- `hashed_password` (String)
+- `created_at` (DateTime)
+- `updated_at` (DateTime)
+
+### Sessions Table
+- `id` (UUID, primary key)
+- `user_id` (UUID, foreign key to users)
+- `token` (String, unique, indexed)
+- `expires_at` (DateTime)
+- `created_at` (DateTime)
+
 ### Chats Table
 - `id` (UUID, primary key)
+- `user_id` (UUID, foreign key to users)
 - `chat_name` (String, nullable)
 - `created_at` (DateTime)
 - `updated_at` (DateTime)
@@ -177,7 +202,9 @@ npx shadcn@latest add <component-name>
 
 ## Notes
 
-- The Clerk middleware currently marks all routes as public (auth protection is disabled)
+- Sessions are stored in the database with 7-day expiration
+- Passwords are hashed with bcrypt
+- JWT tokens are sent as httpOnly cookies for security
 - Messages are saved to the database after the streaming response completes
 - If a stream is interrupted, messages won't be persisted
 - The sidebar fetches chats on each render without caching

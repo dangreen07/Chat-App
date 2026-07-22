@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import OpenAI
@@ -10,13 +10,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from schema import Chat
 from schema import Message as DBMessage
+from schema import User as DBUser
+from auth import router as auth_router, get_current_user
+
+load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=10)
 
-load_dotenv()
-
 app = FastAPI()
+app.include_router(auth_router)
 
 origins = [
     os.getenv("FRONTEND_URL")
@@ -41,7 +44,7 @@ class ChatRequest(BaseModel):
     chat_id: str
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, current_user: DBUser = Depends(get_current_user)):
     def event_stream():
         full_message = ""
         for chunk in client.chat.completions.create(
@@ -68,21 +71,21 @@ async def chat(request: ChatRequest):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @app.post("/new-chat")
-async def new_chat():
+async def new_chat(current_user: DBUser = Depends(get_current_user)):
     with Session(engine) as session:
-        chat = Chat()
+        chat = Chat(user_id=current_user.id)
         session.add(chat)
         session.commit()
         return { "chat_id": chat.id }
 
 @app.get("/chat/{chat_id}/messages")
-async def get_chat(chat_id: str):
+async def get_chat(chat_id: str, current_user: DBUser = Depends(get_current_user)):
     with Session(engine) as session:
         messages = session.query(DBMessage).filter(DBMessage.chat_id == chat_id).all()
         return { "messages": messages }
 
 @app.post("/chat/{chat_id}/auto-name")
-async def auto_name(chat_id: str):
+async def auto_name(chat_id: str, current_user: DBUser = Depends(get_current_user)):
     with Session(engine) as session:
         messages = session.query(DBMessage).filter(DBMessage.chat_id == chat_id).all()
         if len(messages) == 0:
@@ -102,13 +105,13 @@ async def auto_name(chat_id: str):
         return { "name": response.output_text }
 
 @app.get("/chats")
-async def get_chats():
+async def get_chats(current_user: DBUser = Depends(get_current_user)):
     with Session(engine) as session:
-        chats = session.query(Chat).all()
+        chats = session.query(Chat).filter(Chat.user_id == current_user.id).all()
         return { "chats": chats }
 
 @app.get("/chat/{chat_id}")
-async def get_chat(chat_id: str):
+async def get_chat(chat_id: str, current_user: DBUser = Depends(get_current_user)):
     with Session(engine) as session:
         chat = session.query(Chat).filter(Chat.id == chat_id).first()
         return { "chat": chat }
