@@ -1,6 +1,6 @@
 # Greeny Chat App
 
-A full-stack AI chat application with a Next.js frontend and FastAPI backend, powered by OpenAI's GPT-4.1-nano model.
+A full-stack AI chat application with a Next.js frontend and FastAPI backend, powered by OpenAI's GPT-5.4-nano model.
 
 ## Features
 
@@ -23,7 +23,7 @@ A full-stack AI chat application with a Next.js frontend and FastAPI backend, po
 ### Backend (`chat-app-backend/`)
 - **Framework:** FastAPI
 - **Database:** PostgreSQL with SQLAlchemy ORM
-- **AI:** OpenAI API (GPT-4.1-nano)
+- **AI:** OpenAI API (GPT-5.4-nano)
 - **Server:** Uvicorn
 
 ## Project Structure

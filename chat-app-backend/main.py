@@ -45,7 +45,7 @@ async def chat(request: ChatRequest):
     def event_stream():
         full_message = ""
         for chunk in client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model="gpt-5.4-nano",
             messages=[
                 {"role": "system",
                  "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format."},
@@ -89,7 +89,7 @@ async def auto_name(chat_id: str):
             return {"error": "No messages in chat"}
         messages = [{"role": message.role, "content": message.content} for message in messages]
         response = client.responses.create(
-            model="gpt-4.1-nano",
+            model="gpt-5.4-nano",
             input=[
                 *messages,
                 {"role": "system", "content": "You are a helpful assistant. You will NEVER use em-dashes. You will output in markdown format. You will output a short description of the chat that is a good name for a chat."},
